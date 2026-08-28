@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ローカル・バーコードスキャナー</title>
+    <title>小型バーコード対応スキャナー</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; margin: 0; padding: 0; background-color: #f4f4f9; color: #333; }
         #app { max-width: 600px; margin: 0 auto; padding: 15px; }
-        h1 { font-size: 1.4em; color: #1976D2; margin: 10px 0; }
+        h1 { font-size: 1.3em; color: #1976D2; margin: 10px 0; }
         #reader-container { width: 100%; border-radius: 10px; overflow: hidden; background-color: #000; margin-bottom: 10px; }
         #reader { width: 100%; }
         #result { margin: 10px 0; min-height: 1.2em; font-weight: bold; font-size: 1.1em; padding: 10px; border-radius: 6px; }
@@ -27,19 +27,19 @@
         #history li { padding: 8px 0; border-bottom: 1px solid #eee; font-family: monospace; display: flex; justify-content: space-between; font-size: 0.9em; }
         #history li span.barcode { color: #222; font-weight: bold; }
         #history li span.timestamp { color: #888; font-size: 0.8em; }
-        .tips { font-size: 0.8em; color: #666; margin-top: 5px; text-align: left; background: #eef; padding: 8px; border-radius: 5px; }
+        .tips { font-size: 0.8em; color: #444; margin-top: 5px; text-align: left; background: #eef; padding: 8px; border-radius: 5px; }
     </style>
 </head>
 <body>
     <div id="app">
-        <h1>高速バーコードスキャナー</h1>
+        <h1>小型バーコード対応スキャナー</h1>
        
         <div id="reader-container">
             <div id="reader"></div>
         </div>
 
         <div class="tips">
-            💡 <strong>コツ:</strong> 近づけすぎず15〜20cmほど離し、赤外線枠内にバーコード全体を入れてください。ピントが合わない場合は画面内のカメラ切替をお試しください。
+            📌 <strong>コツ:</strong> スマホは15〜20cmほど離して<strong>ピントをしっかり合わせてください</strong>。バーコードが小さく見えても中央の小さな赤枠に入れば読み取れます。
         </div>
 
         <div id="result">バーコードをかざしてください</div>
@@ -95,14 +95,8 @@
             resultDiv.innerText = `読み込み完了: ${decodedText}`;
             resultDiv.className = 'success';
 
-            try {
-                saveBarcode(decodedText);
-            } catch (e) {
-                resultDiv.innerText = `保存エラーが発生しました`;
-                resultDiv.className = 'error';
-            }
+            try { saveBarcode(decodedText); } catch (e) {}
 
-            // 1.5秒後に次のスキャンを許可
             setTimeout(() => {
                 isProcessing = false;
                 resultDiv.innerText = '次のバーコードをかざしてください';
@@ -123,8 +117,7 @@
             if (!csvString) { alert('記録データがありません。'); return; }
             const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
+            link.setAttribute("href", URL.createObjectURL(blob));
             link.setAttribute("download", `barcode_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(link);
             link.click();
@@ -136,8 +129,6 @@
             if (!csvString) { alert('記録データがありません。'); return; }
             navigator.clipboard.writeText(csvString).then(() => {
                 alert('コピー完了！スプレッドシートやメモ帳にそのまま貼り付けられます。');
-            }).catch(err => {
-                alert('コピーできませんでした: ' + err);
             });
         });
 
@@ -152,29 +143,24 @@
 
         updateHistoryDisplay();
 
-        // 1次元バーコード用に最適化したスキャナー設定
-        const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
-            // 横長の枠（幅の80%、高さは幅の35%）
-            let minEdgePercentage = 0.8;
-            let qrboxWidth = Math.floor(viewfinderWidth * minEdgePercentage);
-            let qrboxHeight = Math.floor(qrboxWidth * 0.4);
-            return {
-                width: qrboxWidth,
-                height: qrboxHeight
-            };
-        };
-
+        // 4cmなどの小さなバーコード用に最適化した設定
         const html5QrcodeScanner = new Html5QrcodeScanner(
             "reader",
             {
-                fps: 15,
-                qrbox: qrboxFunction,
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true // スマホ標準の超高速バーコード認識エンジンを使用
+                fps: 20,
+                // 赤枠を横160px・縦60pxとかなり小さく指定（遠くからでも枠に入れやすくする）
+                qrbox: { width: 160, height: 60 },
+                // 高画質（フルHD）で撮影して文字・線を鮮明に解析する
+                videoConstraints: {
+                    facingMode: "environment",
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
                 },
-                rememberLastUsedCamera: true
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                }
             },
-            /* verbose= */ false
+            false
         );
 
         html5QrcodeScanner.render(onScanSuccess);
