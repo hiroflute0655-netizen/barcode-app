@@ -1,173 +1,183 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ローカル・バーコードスキャナー</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; margin: 0; padding: 0; background-color: #f4f4f9; color: #333; }
-        #app { max-width: 600px; margin: 0 auto; padding: 15px; }
-        h1 { font-size: 1.5em; color: #4A90E2; margin-top: 10px; }
-        #reader-container { width: 100%; border-radius: 8px; overflow: hidden; background-color: #000; margin-bottom: 15px; }
-        #reader { width: 100%; height: auto; }
-        #result { margin: 15px 0; min-height: 1.2em; font-weight: bold; font-size: 1.1em; padding: 10px; border-radius: 4px; }
-        .success { color: #2e7d32; background-color: #e8f5e9; border: 1px solid #c8e6c9; }
-        .error { color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; }
-        #control-panel { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
-        button { border: none; padding: 12px; font-size: 1em; border-radius: 8px; cursor: pointer; color: white; -webkit-appearance: none; font-weight: bold; width: 100%; }
-        #export-btn { background-color: #4A90E2; }
-        #clear-btn { background-color: #e53935; margin-top: 20px; font-size: 0.9em; padding: 8px;}
-        #copy-btn { background-color: #ff9800; }
-        button:active { opacity: 0.8; }
-        #history { text-align: left; background-color: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-top: 20px; }
-        #history h2 { margin-top: 0; font-size: 1.2em; display: flex; justify-content: space-between; align-items: center; }
-        #record-count { font-weight: normal; font-size: 0.8em; color: #777; }
-        #history ul { list-style-type: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; }
-        #history li { padding: 8px 0; border-bottom: 1px solid #eee; font-family: monospace; display: flex; justify-content: space-between; font-size: 0.9em; }
-        #history li span.barcode { color: #333; }
-        #history li span.timestamp { color: #888; font-size: 0.8em; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ローカル・バーコードスキャナー</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; margin: 0; padding: 0; background-color: #f4f4f9; color: #333; }
+        #app { max-width: 600px; margin: 0 auto; padding: 15px; }
+        h1 { font-size: 1.4em; color: #1976D2; margin: 10px 0; }
+        #reader-container { width: 100%; border-radius: 10px; overflow: hidden; background-color: #000; margin-bottom: 10px; }
+        #reader { width: 100%; }
+        #result { margin: 10px 0; min-height: 1.2em; font-weight: bold; font-size: 1.1em; padding: 10px; border-radius: 6px; }
+        .success { color: #2e7d32; background-color: #e8f5e9; border: 1px solid #c8e6c9; }
+        .error { color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; }
+        #control-panel { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        button { border: none; padding: 12px; font-size: 1em; border-radius: 8px; cursor: pointer; color: white; -webkit-appearance: none; font-weight: bold; width: 100%; }
+        #export-btn { background-color: #1976D2; }
+        #clear-btn { background-color: #e53935; margin-top: 15px; font-size: 0.9em; padding: 8px;}
+        #copy-btn { background-color: #f57c00; }
+        button:active { opacity: 0.8; }
+        #history { text-align: left; background-color: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-top: 15px; }
+        #history h2 { margin-top: 0; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center; }
+        #record-count { font-weight: normal; font-size: 0.85em; color: #666; }
+        #history ul { list-style-type: none; padding: 0; margin: 0; max-height: 180px; overflow-y: auto; }
+        #history li { padding: 8px 0; border-bottom: 1px solid #eee; font-family: monospace; display: flex; justify-content: space-between; font-size: 0.9em; }
+        #history li span.barcode { color: #222; font-weight: bold; }
+        #history li span.timestamp { color: #888; font-size: 0.8em; }
+        .tips { font-size: 0.8em; color: #666; margin-top: 5px; text-align: left; background: #eef; padding: 8px; border-radius: 5px; }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <h1>ローカル・バーコードスキャナー</h1>
-        
-        <div id="reader-container">
-            <div id="reader"></div>
-        </div>
+    <div id="app">
+        <h1>高速バーコードスキャナー</h1>
+       
+        <div id="reader-container">
+            <div id="reader"></div>
+        </div>
 
-        <div id="result">カメラにバーコードをかざしてください</div>
+        <div class="tips">
+            💡 <strong>コツ:</strong> 近づけすぎず15〜20cmほど離し、赤外線枠内にバーコード全体を入れてください。ピントが合わない場合は画面内のカメラ切替をお試しください。
+        </div>
 
-        <div id="control-panel">
-            <button id="copy-btn">記録をクリップボードにコピー</button>
-            <button id="export-btn">CSVファイルをダウンロード</button>
-        </div>
+        <div id="result">バーコードをかざしてください</div>
 
-        <div id="history">
-            <h2>記録履歴 <span id="record-count">0 件</span></h2>
-            <ul id="history-list"></ul>
-            <button id="clear-btn">履歴をすべて消去</button>
-        </div>
-    </div>
+        <div id="control-panel">
+            <button id="copy-btn">記録をクリップボードにコピー</button>
+            <button id="export-btn">CSVファイルをダウンロード</button>
+        </div>
 
-    <script>
-        let isProcessing = false;
-        const STORAGE_KEY = 'offlineBarcodeHistory';
-        const resultDiv = document.getElementById('result');
-        const countSpan = document.getElementById('record-count');
-        const historyList = document.getElementById('history-list');
+        <div id="history">
+            <h2>記録履歴 <span id="record-count">0 件</span></h2>
+            <ul id="history-list"></ul>
+            <button id="clear-btn">履歴をすべて消去</button>
+        </div>
+    </div>
 
-        // ローカルストレージから履歴を読み込む
-        function loadHistory() {
-            try {
-                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            } catch (e) {
-                return [];
-            }
-        }
+    <script>
+        let isProcessing = false;
+        const STORAGE_KEY = 'offlineBarcodeHistory';
+        const resultDiv = document.getElementById('result');
+        const countSpan = document.getElementById('record-count');
+        const historyList = document.getElementById('history-list');
 
-        // 履歴画面の表示を更新する
-        function updateHistoryDisplay() {
-            const history = loadHistory();
-            countSpan.innerText = `${history.length} 件`;
-            historyList.innerHTML = '';
-            
-            history.slice().reverse().forEach(record => {
-                const li = document.createElement('li');
-                li.innerHTML = `<span class="barcode">${record.barcode}</span><span class="timestamp">${record.timestamp}</span>`;
-                historyList.appendChild(li);
-            });
-        }
+        function loadHistory() {
+            try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch (e) { return []; }
+        }
 
-        // 読み取ったバーコードをローカルストレージに保存する
-        function saveBarcode(barcode) {
-            const history = loadHistory();
-            const now = new Date();
-            const timestamp = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
-            history.push({ barcode: barcode, timestamp: timestamp });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-            updateHistoryDisplay();
-        }
+        function updateHistoryDisplay() {
+            const history = loadHistory();
+            countSpan.innerText = `${history.length} 件`;
+            historyList.innerHTML = '';
+           
+            history.slice().reverse().forEach(record => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span class="barcode">${record.barcode}</span><span class="timestamp">${record.timestamp}</span>`;
+                historyList.appendChild(li);
+            });
+        }
 
-        // スキャン成功時の処理
-        function onScanSuccess(decodedText) {
-            if (isProcessing) return;
-            isProcessing = true;
+        function saveBarcode(barcode) {
+            const history = loadHistory();
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+            history.push({ barcode: barcode, timestamp: timestamp });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            updateHistoryDisplay();
+        }
 
-            resultDiv.innerText = `読み込み中: ${decodedText}...`;
-            resultDiv.className = '';
+        function onScanSuccess(decodedText) {
+            if (isProcessing) return;
+            isProcessing = true;
 
-            // ローカルに保存
-            try {
-                saveBarcode(decodedText);
-                resultDiv.innerText = `【記録完了】 ${decodedText}`;
-                resultDiv.className = 'success';
-            } catch (e) {
-                resultDiv.innerText = `保存エラー: ストレージ容量がいっぱいの可能性があります。`;
-                resultDiv.className = 'error';
-            }
+            resultDiv.innerText = `読み込み完了: ${decodedText}`;
+            resultDiv.className = 'success';
 
-            // 1.5秒後に次の読み取りを許可
-            setTimeout(() => { isProcessing = false; }, 1500);
-        }
+            try {
+                saveBarcode(decodedText);
+            } catch (e) {
+                resultDiv.innerText = `保存エラーが発生しました`;
+                resultDiv.className = 'error';
+            }
 
-        // データをCSVフォーマットの文字列に変換
-        function generateCSVString() {
-            const history = loadHistory();
-            if (history.length === 0) return '';
-            
-            const header = 'バーコード,日時\n';
-            const body = history.map(record => `"${record.barcode}","${record.timestamp}"`).join('\n');
-            return header + body;
-        }
+            // 1.5秒後に次のスキャンを許可
+            setTimeout(() => {
+                isProcessing = false;
+                resultDiv.innerText = '次のバーコードをかざしてください';
+                resultDiv.className = '';
+            }, 1500);
+        }
 
-        // イベントリスナーの設定
-        document.getElementById('export-btn').addEventListener('click', () => {
-            const csvString = generateCSVString();
-            if (!csvString) { alert('記録データがありません。'); return; }
-            
-            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' }); // BOM付きUTF-8
-            const link = document.createElement("a");
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", `barcode_data_${new Date().toISOString().slice(0,10)}.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        });
+        function generateCSVString() {
+            const history = loadHistory();
+            if (history.length === 0) return '';
+            const header = 'バーコード,日時\n';
+            const body = history.map(record => `"${record.barcode}","${record.timestamp}"`).join('\n');
+            return header + body;
+        }
 
-        document.getElementById('copy-btn').addEventListener('click', () => {
-            const csvString = generateCSVString();
-            if (!csvString) { alert('記録データがありません。'); return; }
-            navigator.clipboard.writeText(csvString).then(() => {
-                alert('データをクリップボードにコピーしました。スプレッドシートに貼り付けられます。');
-            }).catch(err => {
-                alert('クリップボードへのコピーに失敗しました。: ' + err);
-            });
-        });
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const csvString = generateCSVString();
+            if (!csvString) { alert('記録データがありません。'); return; }
+            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `barcode_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
 
-        document.getElementById('clear-btn').addEventListener('click', () => {
-            if (confirm('すべての履歴を消去してもよろしいですか？（元には戻せません）')) {
-                localStorage.removeItem(STORAGE_KEY);
-                updateHistoryDisplay();
-                resultDiv.innerText = '履歴を消去しました';
-                resultDiv.className = '';
-            }
-        });
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            const csvString = generateCSVString();
+            if (!csvString) { alert('記録データがありません。'); return; }
+            navigator.clipboard.writeText(csvString).then(() => {
+                alert('コピー完了！スプレッドシートやメモ帳にそのまま貼り付けられます。');
+            }).catch(err => {
+                alert('コピーできませんでした: ' + err);
+            });
+        });
 
-        // 画面起動時に履歴を表示
-        updateHistoryDisplay();
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            if (confirm('すべての履歴を消去しますか？')) {
+                localStorage.removeItem(STORAGE_KEY);
+                updateHistoryDisplay();
+                resultDiv.innerText = '履歴を消去しました';
+                resultDiv.className = '';
+            }
+        });
 
-        // カメラスキャナーの設定
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { fps: 15, qrbox: { width: 250, height: 150 } }
-        );
-        html5QrcodeScanner.render(onScanSuccess);
+        updateHistoryDisplay();
 
-    </script>
+        // 1次元バーコード用に最適化したスキャナー設定
+        const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
+            // 横長の枠（幅の80%、高さは幅の35%）
+            let minEdgePercentage = 0.8;
+            let qrboxWidth = Math.floor(viewfinderWidth * minEdgePercentage);
+            let qrboxHeight = Math.floor(qrboxWidth * 0.4);
+            return {
+                width: qrboxWidth,
+                height: qrboxHeight
+            };
+        };
+
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            {
+                fps: 15,
+                qrbox: qrboxFunction,
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true // スマホ標準の超高速バーコード認識エンジンを使用
+                },
+                rememberLastUsedCamera: true
+            },
+            /* verbose= */ false
+        );
+
+        html5QrcodeScanner.render(onScanSuccess);
+    </script>
 </body>
 </html>
