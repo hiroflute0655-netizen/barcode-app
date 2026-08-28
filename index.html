@@ -3,23 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小型バーコード対応スキャナー</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>自社コード対応スキャナー</title>
+    <!-- 1次元バーコード専用の超高速解析ライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; margin: 0; padding: 0; background-color: #f4f4f9; color: #333; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; margin: 0; padding: 0; background-color: #f4f4f9; color: #333; }
         #app { max-width: 600px; margin: 0 auto; padding: 15px; }
         h1 { font-size: 1.3em; color: #1976D2; margin: 10px 0; }
-        #reader-container { width: 100%; border-radius: 10px; overflow: hidden; background-color: #000; margin-bottom: 10px; }
-        #reader { width: 100%; }
-        #result { margin: 10px 0; min-height: 1.2em; font-weight: bold; font-size: 1.1em; padding: 10px; border-radius: 6px; }
+       
+        /* カメラ映像とスキャン範囲 */
+        #interactive.viewport { width: 100%; height: 260px; position: relative; overflow: hidden; border-radius: 10px; background: #000; }
+        #interactive.viewport > video, #interactive.viewport > canvas { width: 100%; height: 100%; object-fit: cover; }
+        canvas.drawing, canvas.drawingBuffer { position: absolute; left: 0; top: 0; }
+
+        #result { margin: 12px 0; min-height: 1.2em; font-weight: bold; font-size: 1.1em; padding: 10px; border-radius: 6px; }
         .success { color: #2e7d32; background-color: #e8f5e9; border: 1px solid #c8e6c9; }
         .error { color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; }
+       
         #control-panel { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
         button { border: none; padding: 12px; font-size: 1em; border-radius: 8px; cursor: pointer; color: white; -webkit-appearance: none; font-weight: bold; width: 100%; }
         #export-btn { background-color: #1976D2; }
         #clear-btn { background-color: #e53935; margin-top: 15px; font-size: 0.9em; padding: 8px;}
         #copy-btn { background-color: #f57c00; }
         button:active { opacity: 0.8; }
+       
         #history { text-align: left; background-color: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-top: 15px; }
         #history h2 { margin-top: 0; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center; }
         #record-count { font-weight: normal; font-size: 0.85em; color: #666; }
@@ -32,17 +39,16 @@
 </head>
 <body>
     <div id="app">
-        <h1>小型バーコード対応スキャナー</h1>
+        <h1>自社コード対応スキャナー</h1>
        
-        <div id="reader-container">
-            <div id="reader"></div>
-        </div>
+        <!-- カメラ表示エリア -->
+        <div id="interactive" class="viewport"></div>
 
         <div class="tips">
-            📌 <strong>コツ:</strong> スマホは15〜20cmほど離して<strong>ピントをしっかり合わせてください</strong>。バーコードが小さく見えても中央の小さな赤枠に入れば読み取れます。
+            💡 <strong>読み取りのコツ:</strong> ピントが合う位置（15cm程度）でカメラ画面内にバーコードを入れてください。自動で検出枠が緑色に反応します。
         </div>
 
-        <div id="result">バーコードをかざしてください</div>
+        <div id="result">カメラを準備中...</div>
 
         <div id="control-panel">
             <button id="copy-btn">記録をクリップボードにコピー</button>
@@ -88,22 +94,6 @@
             updateHistoryDisplay();
         }
 
-        function onScanSuccess(decodedText) {
-            if (isProcessing) return;
-            isProcessing = true;
-
-            resultDiv.innerText = `読み込み完了: ${decodedText}`;
-            resultDiv.className = 'success';
-
-            try { saveBarcode(decodedText); } catch (e) {}
-
-            setTimeout(() => {
-                isProcessing = false;
-                resultDiv.innerText = '次のバーコードをかざしてください';
-                resultDiv.className = '';
-            }, 1500);
-        }
-
         function generateCSVString() {
             const history = loadHistory();
             if (history.length === 0) return '';
@@ -143,27 +133,77 @@
 
         updateHistoryDisplay();
 
-        // 4cmなどの小さなバーコード用に最適化した設定
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader",
-            {
-                fps: 20,
-                // 赤枠を横160px・縦60pxとかなり小さく指定（遠くからでも枠に入れやすくする）
-                qrbox: { width: 160, height: 60 },
-                // 高画質（フルHD）で撮影して文字・線を鮮明に解析する
-                videoConstraints: {
+        // 1次元バーコード解析エンジン（Quagga2）の初期化
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#interactive'),
+                constraints: {
                     facingMode: "environment",
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
-                },
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true
+                    width: { min: 1280, ideal: 1920 },
+                    height: { min: 720, ideal: 1080 }
                 }
             },
-            false
-        );
+            locator: {
+                patchSize: "medium",
+                halfSample: false // 高解像度解析を維持して小さなコードも拾う
+            },
+            numOfWorkers: 2,
+            decoder: {
+                // 自社コードでよく使われる主要フォーマットをすべて有効化
+                readers: [
+                    "code_128_reader",
+                    "code_39_reader",
+                    "codabar_reader",
+                    "i2of5_reader", // ITFコード
+                    "ean_reader",
+                    "ean_8_reader"
+                ]
+            },
+            locate: true
+        }, function(err) {
+            if (err) {
+                resultDiv.innerText = "カメラの起動に失敗しました: " + err;
+                resultDiv.className = "error";
+                return;
+            }
+            resultDiv.innerText = "バーコードをかざしてください";
+            Quagga.start();
+        });
 
-        html5QrcodeScanner.render(onScanSuccess);
+        // 緑色の認識枠を描画
+        Quagga.onProcessed(function(result) {
+            const drawingCtx = Quagga.canvas.ctx.overlay;
+            const drawingCanvas = Quagga.canvas.dom.overlay;
+
+            if (result) {
+                if (result.boxes) {
+                    drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
+                    result.boxes.filter(box => box !== result.box).forEach(box => {
+                        Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, { color: "green", lineWidth: 2 });
+                    });
+                }
+            }
+        });
+
+        // 読み込み成功時の処理
+        Quagga.onDetected(function(result) {
+            const code = result.codeResult.code;
+            if (!code || isProcessing) return;
+
+            isProcessing = true;
+            resultDiv.innerText = `読み込み完了: ${code}`;
+            resultDiv.className = 'success';
+
+            try { saveBarcode(code); } catch (e) {}
+
+            setTimeout(() => {
+                isProcessing = false;
+                resultDiv.innerText = '次のバーコードをかざしてください';
+                resultDiv.className = '';
+            }, 1500);
+        });
     </script>
 </body>
 </html>
