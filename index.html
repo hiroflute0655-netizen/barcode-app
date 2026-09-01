@@ -48,8 +48,8 @@
         <div id="result">カメラを準備中...</div>
 
         <div id="control-panel">
-            <button id="copy-btn">記録をクリップボードにコピー</button>
-            <button id="export-btn">CSVファイルをダウンロード</button>
+            <button id="copy-btn">記録（番号のみ）をコピー</button>
+            <button id="export-btn">CSVファイルをダウンロード（日時付き）</button>
         </div>
 
         <div id="history">
@@ -99,6 +99,7 @@
             return header + body;
         }
 
+        // CSV出力（日時付き）
         document.getElementById('export-btn').addEventListener('click', () => {
             const csvString = generateCSVString();
             if (!csvString) { alert('記録データがありません。'); return; }
@@ -111,11 +112,16 @@
             document.body.removeChild(link);
         });
 
+        // クリップボードコピー（番号のみ）
         document.getElementById('copy-btn').addEventListener('click', () => {
-            const csvString = generateCSVString();
-            if (!csvString) { alert('記録データがありません。'); return; }
-            navigator.clipboard.writeText(csvString).then(() => {
-                alert('コピー完了！スプレッドシートやメモ帳にそのまま貼り付けられます。');
+            const history = loadHistory();
+            if (history.length === 0) { alert('記録データがありません。'); return; }
+            
+            // 番号のみを改行で連結
+            const barcodeOnlyText = history.map(record => record.barcode).join('\n');
+            
+            navigator.clipboard.writeText(barcodeOnlyText).then(() => {
+                alert('番号のみをコピーしました！スプレッドシート等の列に直接貼り付けられます。');
             });
         });
 
@@ -180,12 +186,10 @@
             }
         });
 
-        // 読み込み成功時の処理（「末尾の1文字＋A」を除去するロジックに更新）
         Quagga.onDetected(function(result) {
             const rawCode = result.codeResult.code;
             if (!rawCode || isProcessing) return;
 
-            // 先頭の「A0+」と、末尾の「任意の1文字＋A（.A$）」を除外して、中央の5〜6桁のみ取得
             const match = rawCode.match(/^A0+([0-9]{5,6}).A$/);
             let cleanCode = match ? match[1] : rawCode.replace(/^A0+/, '').replace(/.A$/, '');
 
